@@ -1,0 +1,58 @@
+name: eval
+
+# Runs the analyst end to end with a local model served by Ollama on the CPU runner, over the
+# real Olist data, scores every answer against its reference SQL and commits eval/.
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: Ollama model
+        default: qwen2.5-coder:7b
+  schedule:
+    - cron: "41 5 * * 1"  # Mondays, so a dependency or model change shows up within a week
+
+permissions:
+  contents: write
+
+concurrency:
+  group: eval
+  cancel-in-progress: false
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env:
+      MODEL: ${{ inputs.model || 'qwen2.5-coder:7b' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Download and check the data, build the database
+        run: |
+          scripts/download_data.sh
+          python scripts/build_db.py
+      - name: Cache Ollama models
+        uses: actions/cache@v4
+        with:
+          path: ~/.ollama/models
+          key: ollama-${{ env.MODEL }}
+      - name: Install Ollama and pull the model
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          ollama serve > /tmp/ollama.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://localhost:11434/api/version && break; sleep 2; done
+          ollama pull "$MODEL"
+      - name: Run the evaluation
+        run: python scripts/run_eval.py --model "$MODEL"
+      - name: Commit results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add eval/
+          git commit -m "Eval run ${{ github.run_id }} with $MODEL" || { echo "no changes"; exit 0; }
+          git pull --rebase
+          git push

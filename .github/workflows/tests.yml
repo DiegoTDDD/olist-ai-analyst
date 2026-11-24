@@ -1,0 +1,49 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: Lint
+        run: ruff check . && ruff format --check .
+      - name: Tests (build code on a small fixture, SQL checks, number checks, scoring, the pipeline with a scripted model)
+        run: pytest -q
+
+  data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Download the nine Olist CSV files and check their SHA-256 hashes
+        run: scripts/download_data.sh
+      - name: Build the analysis database
+        run: python scripts/build_db.py
+      - name: Every reference query in the eval passes the SQL checks and returns rows
+        run: |
+          python - <<'PY'
+          import json
+          from analyst.data import connect
+          from analyst.scoring import matches
+          from analyst.sqlcheck import run
+          con = connect()
+          for q in json.load(open("eval/questions.json")):
+              r = run(con, q["sql"])
+              assert r.rows and not r.warnings, (q["id"], r.warnings)
+              assert matches(r.columns, r.rows, r.columns, r.rows, q.get("ordered", False)), q["id"]
+              print(q["id"], len(r.rows), "rows")
+          PY
