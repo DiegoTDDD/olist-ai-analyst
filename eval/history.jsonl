@@ -1,0 +1,1 @@
+{"model": "qwen2.5-coder:7b", "questions": 25, "execution_accuracy": 0.76, "grounded_memos": 0.7917, "sql_ok_first_try": 0.92, "sql_ok_after_retries": 0.96, "median_seconds": 54.3, "run_at": "2026-11-25"}
