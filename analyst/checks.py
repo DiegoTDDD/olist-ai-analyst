@@ -12,7 +12,7 @@ from analyst.data import FULL_MONTHS
 from analyst.sqlcheck import QueryResult
 
 # 1,234.5 / 12.3% / -0.07 / 2017-01 (dates are skipped, see _DATE)
-_NUMBER = re.compile(r"(?<![\w.])-?\d+(?:,\d{3})*(?:\.\d+)?%?")
+_NUMBER = re.compile(r"(?<![\w.])-?\d+(?:,\d{3})*(?:\.\d+)?%?(?![\w])")  # not inside an ID like 4869f7a5
 _DATE = re.compile(r"\b\d{4}-\d{2}(?:-\d{2})?\b")
 
 

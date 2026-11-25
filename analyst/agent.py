@@ -59,7 +59,9 @@ Rules for SQL:
 - Give every computed column a short snake_case alias.
 - Rates as fractions between 0 and 1 (e.g. avg(is_late::INTEGER)), rounded to 4 decimals.
 - Money and averages rounded to 2 decimals.
-- For monthly trends, group by purchase_month and keep only 2017-01-01 to 2018-08-01.
+- Filter by date only when the question names a period or asks for a monthly trend; monthly
+  trends group by purchase_month and keep 2017-01-01 to 2018-08-01.
+- Aliases must not be SQL keywords (do, to, as, by, on, in, end); use descriptive names.
 - Order the rows so the most important come first, and LIMIT long rankings to 10 rows.
 """
 
@@ -68,7 +70,8 @@ MEMO_RULES = """Write a short decision memo as JSON with three fields:
 - recommendation: one or two sentences on what to do, tied to the decision.
 - caveats: one sentence on what the data cannot show.
 Use only numbers that appear in the result table or the trend line, written as digits
-(no "k" or "million"); a rate of 0.0812 can be written as 8.12%. Do not invent numbers."""
+(no "k" or "million"). Rates in the table are fractions: 0.0812 means 8.12%, not 81.2%.
+Do not add up, average or invent numbers that are not in the table."""
 
 
 @dataclass
@@ -215,15 +218,14 @@ class Analyst:
         warn_text = f"\nWarnings from the checks: {'; '.join(memo.warnings)}" if memo.warnings else ""
         messages.append({"role": "user", "content": f"Result of the SQL:\n{_table_for_prompt(result)}"
                          f"{trend_text}{warn_text}\n\n{MEMO_RULES}"})  # fmt: skip
-        text_for_check = memo.trend or ""
+        # The question, the SQL, the trend line and the coverage note may also supply numbers (years, limits).
+        context = " ".join([question, result.sql, memo.trend or "", COVERAGE])
         for attempt in (1, 2):
             data = self._ask(memo, messages, MEMO_SCHEMA)
             memo.answer = str(data.get("answer", "")).strip()
             memo.recommendation = str(data.get("recommendation", "")).strip()
             memo.caveats = str(data.get("caveats", "")).strip()
-            g: Grounding = grounding(
-                " ".join([memo.answer, memo.recommendation, memo.caveats]), result, question + " " + text_for_check
-            )
+            g: Grounding = grounding(" ".join([memo.answer, memo.recommendation, memo.caveats]), result, context)
             memo.numbers_checked = g.checked
             memo.unsupported_numbers = g.unsupported
             memo.grounded = g.ok and bool(memo.answer)

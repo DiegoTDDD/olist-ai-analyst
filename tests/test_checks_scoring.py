@@ -71,3 +71,19 @@ def test_matches_months_and_selected_columns():
     ref3 = (["is_late", "avg_review"], [(False, 4.29), (True, 2.27)])
     assert matches(["label", "score"], [("on time", 4.29), ("late", 2.27)], *ref3, match=["avg_review"])
     assert not matches(["label", "score"], [("on time", 4.29), ("late", 2.27)], *ref3)
+
+
+def test_numbers_inside_ids_are_not_numbers():
+    assert numbers_in("seller 4869f7a5dfa277a7 sold 229,472.6") == [("229,472.6", 229472.6, 1)]
+
+
+def test_grounding_catches_a_rate_read_ten_times_too_large():
+    r = result(["late_rate"], [(0.0679,)])
+    assert grounding("6.79% of orders were late.", r).ok
+    assert grounding("67.9% of orders were late.", r).unsupported == ["67.9%"]
+
+
+def test_counts_must_match_exactly():
+    ref = (["n"], [(96478,)])
+    assert matches(["n"], [(96478,)], *ref)
+    assert not matches(["n"], [(95123,)], *ref)  # a 1% gap is a different answer for a count

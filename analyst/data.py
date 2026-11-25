@@ -69,7 +69,8 @@ SCHEMA: dict[str, tuple[str, list[tuple[str, str, str]]]] = {
 # Facts about coverage that every memo should respect.
 COVERAGE = (
     "Orders run from 2016-09-04 to 2018-10-17. 2016 has only a few hundred orders and the "
-    "months after August 2018 are incomplete, so trends should use 2017-01 to 2018-08."
+    "months after August 2018 are incomplete: monthly trends should use 2017-01 to 2018-08. "
+    "Totals, shares and averages use all orders unless the question names a period."
 )
 FULL_MONTHS = ("2017-01-01", "2018-08-01")
 

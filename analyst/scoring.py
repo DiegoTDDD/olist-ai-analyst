@@ -2,8 +2,9 @@
 
 Column names and extra columns do not matter. Each reference column (or the ones listed in
 "match") must appear among the agent's columns with the same values: in the same order when
-the question asks for a ranking ("ordered"), as a multiset otherwise. Numbers match within 1%
-(or 0.001), and a rate given as a percentage (x100) matches the fraction.
+the question asks for a ranking ("ordered"), as a multiset otherwise. Counts must match exactly;
+other numbers must match at the coarser of the two roundings (never coarser than 2 decimals),
+and a rate given as a percentage (x100) matches the fraction.
 """
 
 from __future__ import annotations
@@ -27,10 +28,19 @@ def _norm(v: Any) -> Any:
         return str(v).strip().lower()
 
 
+def _decimals(x: float) -> int:
+    text = f"{x:.10f}".rstrip("0")
+    return len(text.split(".")[1]) if "." in text else 0
+
+
 def _same(a: Any, b: Any, scale: float = 1.0) -> bool:
     if isinstance(a, float) and isinstance(b, float):
         b = b * scale
-        return abs(a - b) <= max(0.001, 0.01 * abs(b))
+        if a.is_integer() and b.is_integer():
+            return a == b  # counts must be exact
+        # equal at the coarser of the two roundings, but never coarser than 2 decimals
+        d = max(min(_decimals(a), _decimals(b)), 2 if scale == 1.0 else 0)
+        return abs(round(a, d) - round(b, d)) < 10**-d / 2 + 1e-9
     if isinstance(a, str) and isinstance(b, str) and len(a) >= 7 and len(b) >= 7 and a[4] == b[4] == "-":
         return a[:7] == b[:7]  # 2017-01-01 and 2017-01 are the same month
     return a == b
