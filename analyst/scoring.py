@@ -29,8 +29,11 @@ def _norm(v: Any) -> Any:
 
 
 def _decimals(x: float) -> int:
-    text = f"{x:.10f}".rstrip("0")
-    return len(text.split(".")[1]) if "." in text else 0
+    """Decimals as written: repr gives the shortest form, so 1258681.34 is 2, not 10."""
+    text = repr(float(x))
+    if "e" in text:
+        return 10
+    return len(text.split(".")[1].rstrip("0")) if "." in text else 0
 
 
 def _same(a: Any, b: Any, scale: float = 1.0) -> bool:

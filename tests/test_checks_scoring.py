@@ -87,3 +87,10 @@ def test_counts_must_match_exactly():
     ref = (["n"], [(96478,)])
     assert matches(["n"], [(96478,)], *ref)
     assert not matches(["n"], [(95123,)], *ref)  # a 1% gap is a different answer for a count
+
+
+def test_unrounded_sums_match_their_rounded_reference():
+    # 1258681.34 is stored as 1258681.3400000001; floating-point sums carry noise like ...3399999682
+    assert matches(["revenue"], [(1258681.3399999682,)], ["revenue"], [(1258681.34,)])
+    assert matches(["ratio"], [(0.29,)], ["ratio"], [(0.2907,)])
+    assert not matches(["ratio"], [(0.28,)], ["ratio"], [(0.2907,)])

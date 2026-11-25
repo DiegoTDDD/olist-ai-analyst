@@ -28,7 +28,12 @@ SCHEMA: dict[str, tuple[str, list[tuple[str, str, str]]]] = {
             ("status", "VARCHAR", "delivered, shipped, canceled, unavailable, invoiced, processing, created, approved"),
             ("purchased_at", "TIMESTAMP", "when the order was placed"),
             ("purchase_month", "DATE", "first day of the month the order was placed"),
-            ("delivered_at", "TIMESTAMP", "when the customer received it; NULL if not delivered"),
+            (
+                "delivered_at",
+                "TIMESTAMP",
+                "when the customer received it; NULL if not delivered or the date is "
+                "missing (8 delivered orders): count deliveries with status = 'delivered'",
+            ),
             ("estimated_delivery_date", "DATE", "delivery date promised at purchase"),
             ("delivery_days", "INTEGER", "days from purchase to delivery; NULL if not delivered"),
             ("days_late", "INTEGER", "delivery date minus promised date; negative means early; NULL if not delivered"),
