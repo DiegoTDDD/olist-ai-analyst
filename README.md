@@ -9,17 +9,18 @@ decision the question serves, the answer, a recommendation, the SQL and rows it 
 the trend, and the checks it passed. Code checks every step the model takes, and an
 evaluation with known answers runs on a free CI runner.
 
-**Latest evaluation (qwen2.5-coder 7B on a CPU runner, 25 questions, 2026-11-25):**
+<!-- LATEST:START -->
+**Latest evaluation:** run [45643221006](https://github.com/DiegoTDDD/olist-ai-analyst/actions/runs/45643221006) on 2026-11-25 (commit [da47a63](https://github.com/DiegoTDDD/olist-ai-analyst/commit/da47a63959fd4a88c8306b2c395da43ef6c06b8a)), qwen2.5-coder:7b on a CPU runner, 25 questions. The weekly eval run writes this table ([`scripts/readme_eval.py`](scripts/readme_eval.py)).
 
 | Metric | Value |
 |---|---|
 | Execution accuracy (result matches the reference SQL) | 68% (17 of 25) |
-| Memos whose numbers are all in the query result | 92% |
+| Memos whose numbers are all in the query result | 92% (23 of 25) |
 | Valid SQL on the first try / after retries with the error | 88% / 100% |
 | Median time per question | 31 s |
 
-The two memos that failed the number check had written a rate ten times too large; both are
-marked **Unverified** instead of being shown as fine.
+Memos marked **Unverified** because a number is not in their query result: [q10](eval/memos/q10.md) (31.2%), [q13](eval/memos/q13.md) (6.3%).
+<!-- LATEST:END -->
 
 Full results per question: [eval/results.md](eval/results.md). Every memo: [eval/memos/](eval/memos/).
 
