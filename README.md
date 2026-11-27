@@ -9,7 +9,7 @@ decision the question serves, the answer, a recommendation, the SQL and rows it 
 the trend, and the checks it passed. Code checks every step the model takes, and an
 evaluation with known answers runs on a free CI runner.
 
-**Latest evaluation (qwen2.5-coder 7B on a CPU runner, 25 questions):** 
+**Latest evaluation (qwen2.5-coder 7B on a CPU runner, 25 questions, 2026-11-25):**
 
 | Metric | Value |
 |---|---|
@@ -52,7 +52,7 @@ From [eval/memos/q20.md](eval/memos/q20.md), "How did the monthly late delivery 
 between January 2017 and August 2018?":
 
 > **Answer:** The late delivery rate increased from 2.93% in January 2017 to 6.19% in August
-> 2018.
+> 2018, a 111.3% increase over 20 months.
 >
 > **Trend (computed by code):** late_delivery_rate went from 0.0293 in 2017-01 to 0.0619 in
 > 2018-08 (+111.3%) over 20 full months; the trend is rising, +107.9% along a fitted line.
