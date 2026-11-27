@@ -50,7 +50,8 @@ def main() -> None:
             "id": q["id"], "question": q["question"], "correct": correct, "grounded": memo.grounded,
             "sql_ok_first_try": len(memo.attempts) == 1 and memo.failed is None,
             "attempts": len(memo.attempts), "failed": memo.failed, "numbers_checked": memo.numbers_checked,
-            "unsupported_numbers": memo.unsupported_numbers, "llm_calls": memo.llm_calls,
+            "unsupported_numbers": memo.unsupported_numbers,
+            "misattributed_numbers": memo.misattributed_numbers, "llm_calls": memo.llm_calls,
             "seconds": round(seconds, 1), "sql": memo.sql, "reference_sql": ref.sql,
         })  # fmt: skip
         (EVAL / "memos" / f"{q['id']}.md").write_text(memo.markdown(), encoding="utf-8")
@@ -64,6 +65,7 @@ def main() -> None:
         "questions": n,
         "execution_accuracy": round(sum(r["correct"] for r in rows) / n, 4),
         "grounded_memos": round(sum(r["grounded"] for r in answered) / max(len(answered), 1), 4),
+        "misattributed_memos": sum(bool(r["misattributed_numbers"]) for r in answered),
         "sql_ok_first_try": round(sum(r["sql_ok_first_try"] for r in rows) / n, 4),
         "sql_ok_after_retries": round(len(answered) / n, 4),
         "median_seconds": statistics.median(r["seconds"] for r in rows),
@@ -76,7 +78,8 @@ def main() -> None:
         "| Metric | Value |",
         "|---|---|",
         f"| Execution accuracy (result matches the reference SQL) | {summary['execution_accuracy']:.0%} |",
-        f"| Memos whose numbers are all in the query result | {summary['grounded_memos']:.0%} |",
+        f"| Memos whose numbers are all in the query result, each with its own row | {summary['grounded_memos']:.0%} |",
+        f"| Memos with a number next to the wrong row | {summary['misattributed_memos']} |",
         f"| Valid SQL on the first try | {summary['sql_ok_first_try']:.0%} |",
         f"| Valid SQL after retries with the error message | {summary['sql_ok_after_retries']:.0%} |",
         f"| Median seconds per question (CPU runner) | {summary['median_seconds']:.0f} |",

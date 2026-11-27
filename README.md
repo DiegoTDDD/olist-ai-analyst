@@ -102,9 +102,9 @@ What each run taught:
 
 ## Limits
 
-- The number check proves a number exists in the result, not that the sentence attaches it to
-  the right row: "SP has 4.18" passes if any row holds 4.18. Execution accuracy is what catches
-  a wrong answer.
+- A number the memo ties to a row ("SP has 4.18", "6.19% in August 2018", a "respectively"
+  list) must be that row's value ([ADR 0005](docs/adr/0005-numbers-next-to-their-own-row.md)),
+  but looser wording is not judged. Execution accuracy is what catches a wrong answer.
 - Execution accuracy scores the SQL, not the recommendation.
 - 25 questions is a small set, and the questions were written by the same person who wrote the
   pipeline. Three were reworded after a run, as listed above.
@@ -132,6 +132,7 @@ scripted model, so they need neither the data nor a model.
 - [0002 Three analysis tables instead of the nine raw files](docs/adr/0002-three-analysis-tables.md)
 - [0003 Score answers by running reference SQL](docs/adr/0003-execution-accuracy.md)
 - [0004 A local model served by Ollama](docs/adr/0004-local-model.md)
+- [0005 A number tied to a row must be that row's value](docs/adr/0005-numbers-next-to-their-own-row.md)
 
 ## Data
 

@@ -17,6 +17,11 @@ START, END = "<!-- LATEST:START -->", "<!-- LATEST:END -->"
 REPO = "https://github.com/DiegoTDDD/olist-ai-analyst"
 
 
+def own_row(rows: list[dict]) -> str:
+    """Runs from run 4 on also check each number sits next to its own row."""
+    return ", each with its own row" if any("misattributed_numbers" in r for r in rows) else ""
+
+
 def share(rows: list[dict], key: str) -> str:
     hits = sum(bool(r.get(key)) for r in rows)
     return f"{hits / len(rows):.0%} ({hits} of {len(rows)})"
@@ -34,7 +39,7 @@ def render(results: dict, run_id: str, commit: str) -> str:
         "| Metric | Value |",
         "|---|---|",
         f"| Execution accuracy (result matches the reference SQL) | {share(rows, 'correct')} |",
-        f"| Memos whose numbers are all in the query result | {share(rows, 'grounded')} |",
+        f"| Memos whose numbers are all in the query result{own_row(rows)} | {share(rows, 'grounded')} |",
         "| Valid SQL on the first try / after retries with the error | "
         f"{first / len(rows):.0%} / {s['sql_ok_after_retries']:.0%} |",
         f"| Median time per question | {s['median_seconds']:.0f} s |",
@@ -42,11 +47,14 @@ def render(results: dict, run_id: str, commit: str) -> str:
     flagged = [r for r in rows if r.get("grounded") is False]
     if flagged:
         memos = ", ".join(
-            f"[{r['id']}](eval/memos/{r['id']}.md) ({', '.join(r.get('unsupported_numbers') or [])})" for r in flagged
+            f"[{r['id']}](eval/memos/{r['id']}.md) "
+            f"({', '.join((r.get('unsupported_numbers') or []) + (r.get('misattributed_numbers') or []))})"
+            for r in flagged
         )
         lines += [
             "",
-            f"Memos marked **Unverified** because a number is not in their query result: {memos}.",
+            "Memos marked **Unverified** because a number is not in their query result or is "
+            f"next to the wrong row: {memos}.",
         ]
     return "\n".join(lines)
 

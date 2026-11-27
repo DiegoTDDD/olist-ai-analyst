@@ -21,7 +21,7 @@ from typing import Any
 
 import duckdb
 
-from analyst.checks import Grounding, Trend, fmt, grounding, trend
+from analyst.checks import Grounding, Trend, fmt, grounding, misattributed, trend
 from analyst.data import COVERAGE, schema_text
 from analyst.llm import ChatModel
 from analyst.sqlcheck import QueryResult, SQLRejected, run
@@ -90,6 +90,7 @@ class Memo:
     caveats: str = ""
     grounded: bool = False
     unsupported_numbers: list[str] = field(default_factory=list)
+    misattributed_numbers: list[str] = field(default_factory=list)
     numbers_checked: int = 0
     failed: str | None = None
     model: str = ""
@@ -105,9 +106,16 @@ class Memo:
         body = "".join("| " + " | ".join(_cell(v) for v in r) + " |\n" for r in self.rows[:20])
         more = f"\n_{len(self.rows) - 20} more rows not shown._\n" if len(self.rows) > 20 else ""
         missing = ", ".join(self.unsupported_numbers)
-        status = "All numbers in this memo were found in the query result."
+        wrong_row = ", ".join(self.misattributed_numbers)
+        status = ("All numbers in this memo were found in the query result, each next to its own "
+                  "row where the memo names one.")  # fmt: skip
         if not self.grounded:
-            status = f"**Unverified:** these numbers are not in the query result: {missing}."
+            parts = []
+            if missing:
+                parts.append(f"these numbers are not in the query result: {missing}")
+            if wrong_row:
+                parts.append(f"these numbers belong to another row than the one named: {wrong_row}")
+            status = f"**Unverified:** {'; '.join(parts) or 'no answer'}."
         checks = [f"SQL passed the read-only checks and ran ({len(self.rows)} rows, "
                   f"{len(self.attempts)} attempt{'s' if len(self.attempts) != 1 else ''})."]  # fmt: skip
         checks += [f"Warning: {w}." for w in self.warnings]
@@ -225,14 +233,23 @@ class Analyst:
             memo.answer = str(data.get("answer", "")).strip()
             memo.recommendation = str(data.get("recommendation", "")).strip()
             memo.caveats = str(data.get("caveats", "")).strip()
-            g: Grounding = grounding(" ".join([memo.answer, memo.recommendation, memo.caveats]), result, context)
+            text = " ".join([memo.answer, memo.recommendation, memo.caveats])
+            g: Grounding = grounding(text, result, context)
             memo.numbers_checked = g.checked
             memo.unsupported_numbers = g.unsupported
-            memo.grounded = g.ok and bool(memo.answer)
+            stated = " ".join([memo.answer, memo.recommendation])
+            memo.misattributed_numbers = misattributed(stated, result)
+            memo.grounded = g.ok and not memo.misattributed_numbers and bool(memo.answer)
             if memo.grounded or attempt == 2:
                 break
+            problems = []
+            if g.unsupported:
+                problems.append(f"These numbers are not in the result: {', '.join(g.unsupported)}.")
+            if memo.misattributed_numbers:
+                problems.append("These numbers are next to the wrong row (number (row named)): "
+                                f"{', '.join(memo.misattributed_numbers)}.")  # fmt: skip
             messages.append({"role": "assistant", "content": json.dumps(data)})
-            messages.append({"role": "user", "content": "These numbers are not in the result: "
-                             f"{', '.join(g.unsupported)}. Rewrite the memo using only numbers from the "
-                             "result table or the trend line."})  # fmt: skip
+            problems.append("Rewrite the memo using only numbers from the result table or the trend line, "
+                            "each with its own row.")  # fmt: skip
+            messages.append({"role": "user", "content": " ".join(problems)})
         return memo

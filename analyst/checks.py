@@ -82,6 +82,103 @@ def grounding(text: str, result: QueryResult, question: str = "") -> Grounding:
     return Grounding(checked=len(found), unsupported=bad)
 
 
+_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August",
+           "September", "October", "November", "December"]  # fmt: skip
+
+
+def _labels(cell: object) -> list[str]:
+    """How a memo may name a row by this cell: a state or category as written, a month as
+    "January 2017", "Jan 2017" or "2017-01"."""
+    if isinstance(cell, dt.date):
+        d = _as_date(cell)
+        name = _MONTHS[d.month - 1]
+        return [f"{name} {d.year}", f"{name[:3]} {d.year}", f"{d.year}-{d.month:02d}"]
+    if isinstance(cell, str) and len(cell.strip()) >= 2 and _numeric(cell) is None:
+        return [cell.strip(), cell.strip().replace("_", " ")]
+    return []
+
+
+def _row_values(row: tuple) -> list[float]:
+    vals = [x for x in (_numeric(c) for c in row) if x is not None]
+    return vals + [x * 100 for x in vals]
+
+
+def _matches(value: float, decimals: int, candidates: list[float]) -> bool:
+    tol = max(0.5 * 10**-decimals, 0.005 * abs(value)) + 1e-9
+    return any(abs(value - c) <= tol for c in candidates)
+
+
+_CONNECT_AFTER = re.compile(r"^\s*(?:\)\s*)?(?:(?:with|has|had|at|of|is|was|:|=|-)\s*){1,3}(?:R\$\s*)?$", re.I)
+_CONNECT_BEFORE = re.compile(r"^\s*(?:in|for|on|from|by)\s+(?:the\s+)?$", re.I)
+
+
+Label = tuple[int, int, str]  # start, end, label as found in the sentence
+
+
+def _pairs(sentence: str, labels: list[Label], numbers: list[re.Match]) -> list[tuple[re.Match, Label]]:
+    """(number, label) pairs the sentence states unambiguously.
+
+    "SP with 4.18", "SP: 4.18", "SP (4.18)", "4.18 in SP", "2.93% in January 2017", and lists
+    closed by "respectively" (paired in order). Anything looser is not judged."""
+    if re.search(r"\brespectively\b", sentence, re.I):
+        seen: list[tuple[int, int, str]] = []
+        for lb in labels:
+            if lb[2] not in {x[2] for x in seen}:
+                seen.append(lb)
+        return list(zip(numbers, seen, strict=True)) if len(seen) == len(numbers) else []
+    out = []
+    for m in numbers:
+        before = [
+            lb
+            for lb in labels
+            if lb[1] <= m.start() and _CONNECT_AFTER.match(sentence[lb[1] : m.start()].replace("(", ""))
+        ]
+        after = [lb for lb in labels if lb[0] >= m.end() and _CONNECT_BEFORE.match(sentence[m.end() : lb[0]])]
+        if len(before) + len(after) == 1:
+            out.append((m, (before or after)[0]))
+    return out
+
+
+def misattributed(text: str, result: QueryResult) -> list[str]:
+    """Numbers the memo puts next to the wrong row.
+
+    The number check proves a number is somewhere in the result; "SP has 4.18" passes if any
+    row holds 4.18. Here a number the sentence ties to a row label (a state, a category, a
+    month: "SP with 4.18", "6.19% in August 2018", lists closed by "respectively") must be a
+    value of a row with that label. It is reported as "4.18 (SP)" when it is another row's value
+    instead. Numbers that are no row's value (gaps, ratios, counts) and looser wording are not
+    judged.
+    """
+    label_rows: dict[str, list[int]] = {}
+    for i, row in enumerate(result.rows):
+        for cell in row:
+            for label in _labels(cell):
+                label_rows.setdefault(label.lower(), []).append(i)
+    if not label_rows:
+        return []
+    pattern = re.compile(
+        r"(?<![\w-])(" + "|".join(re.escape(lb) for lb in sorted(label_rows, key=len, reverse=True)) + r")(?![\w-])",
+        re.IGNORECASE,
+    )
+    all_values = [_row_values(r) for r in result.rows]
+    bad = []
+    for sentence in re.split(r"(?<=[.;!?])\s+", text):
+        labels = [(m.start(), m.end(), m.group(1).lower()) for m in pattern.finditer(sentence)]
+        if not labels:
+            continue
+        masked = _DATE.sub(lambda m: " " * len(m.group(0)), sentence)
+        numbers = [m for m in _NUMBER.finditer(masked)
+                   if not any(a <= m.start() < b for a, b, _ in labels)]  # fmt: skip
+        for m, (start, end, label) in _pairs(sentence, labels, numbers):
+            raw = m.group(0).rstrip("%")
+            value = float(raw.replace(",", ""))
+            decimals = len(raw.split(".")[1]) if "." in raw else 0
+            owners = {i for i, vals in enumerate(all_values) if _matches(value, decimals, vals)}
+            if owners and not owners & set(label_rows[label]):
+                bad.append(f"{m.group(0)} ({sentence[start:end]})")
+    return bad
+
+
 @dataclass
 class Trend:
     column: str
