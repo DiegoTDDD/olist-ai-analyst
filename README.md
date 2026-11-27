@@ -10,16 +10,14 @@ the trend, and the checks it passed. Code checks every step the model takes, and
 evaluation with known answers runs on a free CI runner.
 
 <!-- LATEST:START -->
-**Latest evaluation:** run [45643221006](https://github.com/DiegoTDDD/olist-ai-analyst/actions/runs/45643221006) on 2026-11-25 (commit [da47a63](https://github.com/DiegoTDDD/olist-ai-analyst/commit/da47a63959fd4a88c8306b2c395da43ef6c06b8a)), qwen2.5-coder:7b on a CPU runner, 25 questions. The weekly eval run writes this table ([`scripts/readme_eval.py`](scripts/readme_eval.py)).
+**Latest evaluation:** run [46081026116](https://github.com/DiegoTDDD/olist-ai-analyst/actions/runs/46081026116) on 2026-11-27 (commit [f7c7bee](https://github.com/DiegoTDDD/olist-ai-analyst/commit/f7c7bee50658e15a80f9a02fe8a6b344393c8ec9)), qwen2.5-coder:7b on a CPU runner, 25 questions. The weekly eval run writes this table ([`scripts/readme_eval.py`](scripts/readme_eval.py)).
 
 | Metric | Value |
 |---|---|
-| Execution accuracy (result matches the reference SQL) | 68% (17 of 25) |
-| Memos whose numbers are all in the query result | 92% (23 of 25) |
+| Execution accuracy (result matches the reference SQL) | 72% (18 of 25) |
+| Memos whose numbers are all in the query result, each with its own row | 100% (25 of 25) |
 | Valid SQL on the first try / after retries with the error | 88% / 100% |
-| Median time per question | 31 s |
-
-Memos marked **Unverified** because a number is not in their query result: [q10](eval/memos/q10.md) (31.2%), [q13](eval/memos/q13.md) (6.3%).
+| Median time per question | 68 s |
 <!-- LATEST:END -->
 
 Full results per question: [eval/results.md](eval/results.md). Every memo: [eval/memos/](eval/memos/).
