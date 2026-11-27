@@ -25,8 +25,8 @@ jobs:
     env:
       MODEL: ${{ inputs.model || 'qwen2.5-coder:7b' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip
@@ -36,7 +36,7 @@ jobs:
           scripts/download_data.sh
           python scripts/build_db.py
       - name: Cache Ollama models
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.ollama/models
           key: ollama-${{ env.MODEL }}
