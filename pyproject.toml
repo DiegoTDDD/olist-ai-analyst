@@ -5,7 +5,7 @@ description = "A local-model data analyst that turns a business question into a 
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.11"
-dependencies = ["duckdb>=1.4,<2", "ollama>=0.6"]
+dependencies = ["duckdb>=2.0,<3", "ollama>=0.6"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.6"]
@@ -18,6 +18,8 @@ testpaths = ["tests"]
 pythonpath = ["."]
 
 [tool.ruff]
+# The pip-audit script is shared unchanged by every repository's security workflow.
+extend-exclude = [".github/scripts"]
 line-length = 120
 target-version = "py311"
 
