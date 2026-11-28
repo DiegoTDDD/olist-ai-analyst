@@ -73,6 +73,7 @@ counts must match exactly). See [docs/adr/0003](docs/adr/0003-execution-accuracy
 | 1 | first run | 76%* | 79% | 92% |
 | 2 | prompt and checks fixed after run 1, stricter scoring | 52%† | 92% | 88% |
 | 3 | scoring bug fixed, two ambiguous questions reworded | 68% | 92% | 88% |
+| 4 | numbers must sit next to their own row ([ADR 0005](docs/adr/0005-numbers-next-to-their-own-row.md)) | 72% | 100% | 88% |
 
 \* Scored with a 1% tolerance, which let a count cut short by an unrequested date filter pass.
 † The stricter scoring compared decimals by their binary expansion, so an unrounded sum never
@@ -97,6 +98,15 @@ What each run taught:
   swaps their order (q15). The number check caught "31.2%" for 0.0312 and "6.3%" for 0.0063.
   These are left as they are: tuning the prompt question by question would fit the eval, not
   the task.
+- **Run 4** ([46081026116](https://github.com/DiegoTDDD/olist-ai-analyst/actions/runs/46081026116)).
+  The new row check fired on no memo: no number sat next to the wrong row. The two memos run 3
+  left Unverified (q10 "31.2%", q13 "6.3%") were caught again by the number check; the rewrite
+  request now also asks for "each with its own row", and this time both rewrites used the
+  result's own values (0.0312, 0.0063), so every memo passed. The one extra correct answer
+  (q15) is the rounding tie from run 3 falling the other way: food and office_furniture both
+  round to 25%, and their order decides the score. It is variance, not a fix; the other seven
+  misses are the same as in run 3. The median time doubled (31 s to 68 s) on every question,
+  with the same number of model calls, so the runner was slower, not the pipeline.
 
 ## Limits
 

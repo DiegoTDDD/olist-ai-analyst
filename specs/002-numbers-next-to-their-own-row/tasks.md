@@ -3,4 +3,4 @@
 - [x] T2 misattributed and its use in the agent
 - [x] T3 Eval and README table
 - [x] T4 ADR 0005, README limits
-- [ ] T5 Run 4 and the README history
+- [x] T5 Run 4 and the README history
